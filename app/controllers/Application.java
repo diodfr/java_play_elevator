@@ -60,6 +60,8 @@ public class Application extends Controller {
     }
     
 	public static Result nextCommand() {
-        return ok(getElevatorInstance().nextCommand());
+        Elevator elevatorInstance = getElevatorInstance();
+		// System.out.println(elevatorInstance.toString());
+        return ok(elevatorInstance.nextCommand());
     }
 }

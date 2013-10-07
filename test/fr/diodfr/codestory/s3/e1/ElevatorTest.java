@@ -1,5 +1,8 @@
 package fr.diodfr.codestory.s3.e1;
 
+import java.util.Map;
+import java.util.TreeMap;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -108,7 +111,14 @@ public class ElevatorTest {
 		elevator.goTo(1);
 		elevator.goTo(5);
 		Assert.assertEquals("currentFloor=0\ndoor=false\nusers=[dest=1, dest=1, dest=1, dest=5]\ncalls=[]\n", elevator.toString());
+		
+		Map<Integer, Integer> map = new TreeMap<Integer, Integer>();
+		map.put(1, 3);
+		map.put(5, 1);
+		Assert.assertEquals(map , elevator.createDestCount());
 
+		Assert.assertEquals(1, elevator.optimiseGoDest(elevator.createDestCount(), 4));
+		
 		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand());
 		Assert.assertEquals("currentFloor=1\ndoor=false\nusers=[dest=1, dest=1, dest=1, dest=5]\ncalls=[]\n", elevator.toString());
 		
@@ -150,6 +160,43 @@ public class ElevatorTest {
 
 		Assert.assertEquals(Elevator.CMD_NOTHING, elevator.nextCommand());
 		Assert.assertEquals("currentFloor=5\ndoor=false\nusers=[]\ncalls=[]\n", elevator.toString());
+
+	}
+	
+	@Test
+	public void testOptimisationPoints1() {
+		Elevator elevator = new Elevator();
+		elevator.goTo(2);
+		elevator.goTo(2);
+		elevator.goTo(2);
+		elevator.goTo(1);
+		Assert.assertEquals("currentFloor=0\ndoor=false\nusers=[dest=2, dest=2, dest=2, dest=1]\ncalls=[]\n", elevator.toString());
+
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand());
+		Assert.assertEquals("currentFloor=1\ndoor=false\nusers=[dest=2, dest=2, dest=2, dest=1]\ncalls=[]\n", elevator.toString());
+
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand());
+		Assert.assertEquals("currentFloor=2\ndoor=false\nusers=[dest=2, dest=2, dest=2, dest=1]\ncalls=[]\n", elevator.toString());
+
+		Assert.assertEquals(Elevator.CMD_OPEN, elevator.nextCommand());
+		Assert.assertEquals("currentFloor=2\ndoor=true\nusers=[dest=2, dest=2, dest=2, dest=1]\ncalls=[]\n", elevator.toString());
+	
+		elevator.userExited();
+		elevator.userExited();
+		elevator.userExited();
+		Assert.assertEquals("currentFloor=2\ndoor=true\nusers=[dest=1]\ncalls=[]\n", elevator.toString());
+	
+		Assert.assertEquals(Elevator.CMD_CLOSE, elevator.nextCommand());
+		Assert.assertEquals("currentFloor=2\ndoor=false\nusers=[dest=1]\ncalls=[]\n", elevator.toString());
+
+		Assert.assertEquals(Elevator.CMD_DOWN, elevator.nextCommand());
+		Assert.assertEquals("currentFloor=1\ndoor=false\nusers=[dest=1]\ncalls=[]\n", elevator.toString());
+
+		Assert.assertEquals(Elevator.CMD_OPEN, elevator.nextCommand());
+		Assert.assertEquals("currentFloor=1\ndoor=true\nusers=[dest=1]\ncalls=[]\n", elevator.toString());
+
+		elevator.userExited();
+		Assert.assertEquals("currentFloor=1\ndoor=true\nusers=[]\ncalls=[]\n", elevator.toString());
 
 	}
 }

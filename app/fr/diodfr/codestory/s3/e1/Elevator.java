@@ -3,6 +3,9 @@ package fr.diodfr.codestory.s3.e1;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
 
 public class Elevator {
 	static final String CMD_DOWN = "DOWN";
@@ -150,17 +153,19 @@ public class Elevator {
 	}
 
 	private String nextCommandUser() {
-		int dest = currentFloor;
-		int diffDest = Integer.MAX_VALUE;
+//		int dest = currentFloor;
+//		int diffDest = Integer.MAX_VALUE;
 		
-		for (User user : users) {
-			int diffCurrent = Math.abs(currentFloor - user.destFloor);
+//		for (User user : users) {
+//			int diffCurrent = Math.abs(currentFloor - user.destFloor);
+//		
+//			if (diffCurrent < diffDest) {
+//				diffDest = diffCurrent;
+//				dest = user.destFloor;
+//			}
+//		}
 		
-			if (diffCurrent < diffDest) {
-				diffDest = diffCurrent;
-				dest = user.destFloor;
-			}
-		}
+		int dest = optimiseGoDest(createDestCount(), users.size());
 		
 		if (currentFloor == dest) {
 			return openDoor();
@@ -177,6 +182,52 @@ public class Elevator {
 		}
 		
 		return down();
+	}
+
+	Map<Integer, Integer> createDestCount() {
+		Map<Integer, Integer> countMap = new TreeMap<Integer, Integer>();
+		
+		for (User user : users) {
+			Integer integer = countMap.get(user.destFloor);
+			countMap.put(user.destFloor, integer!= null? integer + 1 : 1);
+		}
+		
+		return countMap;
+	}
+	
+	int optimiseGoDest(Map<Integer,Integer> destCount, int userCount) {
+		int min = Integer.MAX_VALUE;
+		int dest = destCount.keySet().iterator().next();
+		
+		for (Entry<Integer,Integer> entry : destCount.entrySet()) {
+			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
+			tempMap.remove(entry.getKey());
+			int current = optimiseGoDest(currentFloor, entry.getKey(), entry.getValue(), tempMap, userCount);
+			
+			if (current < min) {
+				min = current;
+				dest = entry.getKey();
+			}
+		}
+		
+		return dest;
+	}
+	
+	private int optimiseGoDest(int currentPos, int floor, int count, Map<Integer, Integer> destCount, int userCount) {
+		int min = Integer.MAX_VALUE;
+		
+		for (Entry<Integer, Integer> entry : destCount.entrySet()) {
+			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
+			tempMap.remove(entry.getKey());
+			int remainingUserCount = userCount - count;
+			min = Math.min(min, optimiseGoDest(floor, entry.getKey(), entry.getValue(), tempMap, remainingUserCount) + remainingUserCount); // others drops + close door
+		}
+		
+		if (min == Integer.MAX_VALUE) {
+			min = 0;
+		}
+		
+		return min + ((Math.abs(floor - currentPos)+1) * userCount);
 	}
 
 	private boolean findCall(int floor, boolean up) {
