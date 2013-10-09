@@ -77,6 +77,7 @@ public class Elevator {
 	private String closeDoor() {
 		doorsOpened = false;
 
+		System.out.println("Elevator.closeDoor()" + toString());
 		return CMD_CLOSE;
 	}
 
