@@ -2,16 +2,14 @@ package fr.diodfr.codestory.s3.e1;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.TreeMap;
-import java.util.TreeSet;
 
 public class Elevator {
+	private static final int MAX_COMPUTED_LEVELS = 5;
 	static final String CMD_DOWN = "DOWN";
 	static final String CMD_UP = "UP";
 	static final String CMD_CLOSE = "CLOSE";
@@ -52,12 +50,33 @@ public class Elevator {
 
 	private List<Call> calls = new ArrayList<Call>();
 	private List<User> users = new ArrayList<User>();
+	private int lowerFloor;
+	private int higherFloor;
+	private int cabinSize;
+
+	public Elevator(int lowerFloor, int higherFloor, int cabinSize) {
+		this.lowerFloor = lowerFloor;
+		this.higherFloor = higherFloor;
+		this.cabinSize = cabinSize;
+	}
 
 	public void goTo(int floor) {
 		User user = new User(floor);
+		synchronized (calls) {
+			for (Iterator<Call> callsIterator = calls.iterator(); callsIterator.hasNext();) {
+				Call call = callsIterator.next();
+				if(call.floor == currentFloor) {
+					callsIterator.remove();
+					break;
+				}
+			}
+		}
+		System.out.println("Elevator.goTo()" + floor);
 		synchronized (users) {
 			users.add(user);
 		}
+
+		System.out.println("Elevator.enclosing_method()\n" + toString());
 	}
 
 	public void addCall(int floor, String destination) {
@@ -109,18 +128,10 @@ public class Elevator {
 	}
 
 	public void userEntered() {
-		synchronized (calls) {
-			for (Iterator<Call> callsIterator = calls.iterator(); callsIterator.hasNext();) {
-				Call call = callsIterator.next();
-				if(call.floor == currentFloor) {
-					callsIterator.remove();
-					return;
-				}
-			}
-		}
 	}
 
 	public String nextCommand() {
+		System.out.println("Elevator.nextCommand()\n" + toString());
 		synchronized (users) {
 			synchronized (calls) {
 
@@ -131,7 +142,7 @@ public class Elevator {
 				} else if (!calls.isEmpty()) {
 					return nextCommandCalls();
 				}
-				
+
 				return CMD_NOTHING;
 			}
 		}
@@ -173,31 +184,69 @@ public class Elevator {
 	}
 
 	private String nextCommandUser() {
-		int dest = optimiseGoDest(createDestCount(), users.size());
+		int[] destMin = optimiseGoDest(createDestCount(), users.size());
 
-		if (currentFloor == dest) {
+		if (currentFloor == destMin[0]) {
 			return openDoor();
-		} else if (currentFloor < dest) {
-			if (findCall(currentFloor, true)) {
-				return openDoor();
-			}
+		} 
 
-			return up();
+		if (shouldIOpenDoors(destMin)) {
+			return openDoor();
 		}
 
-		if (findCall(currentFloor, false)) {
-			return openDoor();
+		if (currentFloor < destMin[0]) {
+			return up();
 		}
 
 		return down();
 	}
 
+	private boolean shouldIOpenDoors(int[] destMin){
+		int callCount = findCall(currentFloor, false);
+
+		if (callCount == 0) {
+			return false;
+		}
+
+		return users.size() * 2 <= (callCount * (destMin[2]+1));
+	}
+
+	
 	Map<Integer, Integer> createDestCount() {
 		Map<Integer, Integer> countMap = new TreeMap<Integer, Integer>();
 
 		for (User user : users) {
 			Integer integer = countMap.get(user.destFloor);
 			countMap.put(user.destFloor, integer!= null? integer + 1 : 1);
+		}
+
+		if (countMap.size() > 5) {
+			List<Integer> keepedLevels = new ArrayList<>();
+			int min = Integer.MIN_VALUE;
+
+			for (Entry<Integer, Integer> levelCount : countMap.entrySet()) {
+				if (levelCount.getValue() > min) {
+					keepedLevels.add(levelCount.getKey());
+
+
+					if (keepedLevels.size() > MAX_COMPUTED_LEVELS) {
+						for (Iterator<Integer> iterator = keepedLevels.iterator(); iterator.hasNext();) {
+							Integer level = iterator.next();
+							if (countMap.get(level) == min) {
+								iterator.remove();
+								break;
+							}
+						}
+					}
+					
+					min = Integer.MAX_VALUE;
+					for (Integer level : keepedLevels) {
+						if (countMap.get(level) < min) {
+							min = countMap.get(level);
+						}
+					}
+				}
+			}
 		}
 
 		return countMap;
@@ -209,75 +258,58 @@ public class Elevator {
 	 * @param userCount number of users in the elevator
 	 * @return
 	 */
-	int optimiseGoDest(Map<Integer,Integer> destCount, int userCount) {
+	int[] optimiseGoDest(Map<Integer,Integer> destCount, int userCount) {
 		int min = Integer.MAX_VALUE;
 		int dest = destCount.keySet().iterator().next();
+		int tickCount = Integer.MAX_VALUE;
 
-		Map <Integer, Map<Set<Integer>, Integer>> cache = new TreeMap <Integer, Map<Set<Integer>, Integer>>();
-		
 		for (Entry<Integer,Integer> entry : destCount.entrySet()) {
-			TreeSet<Integer> tempSet = new TreeSet<Integer>(destCount.keySet());
-			tempSet.remove(entry.getKey());
-			int current = optimiseGoDest(cache, destCount, entry.getKey(), entry.getValue(), tempSet, userCount);
+			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
+			tempMap.remove(entry.getKey());
+			int[] current = optimiseGoDest(currentFloor, entry.getKey(), entry.getValue(), tempMap, userCount);
 
-			current += (Math.abs(entry.getKey() - currentFloor)+1) * userCount; // cout de deplacement plus ouverture
-			
-			if (current < min) {
-				min = current;
+			if (current[0] < min) {
+				min = current[0];
 				dest = entry.getKey();
+				tickCount = current[1];
 			}
 		}
 
-		return dest;
+
+		return new int[] {dest, min, tickCount};
 	}
 
-	/**
-	 * returns the optimize destination
-	 * @param cache
-	 * @param currentPos
-	 * @param destFloor
-	 * @param user4ThisFloorCount
-	 * @param destCount
-	 * @param userCountElevator
-	 * @return
-	 */
-	private int optimiseGoDest(Map <Integer, Map<Set<Integer>, Integer>> cache, Map<Integer, Integer> destCount, int destFloor, int user4ThisFloorCount, Set<Integer> remainingStairs, int userCountElevator) {
-		int min = Integer.MAX_VALUE;
+	private int[] optimiseGoDest(int currentPos, int floor, int count, Map<Integer, Integer> destCount, int userCount) {
+		int[] min = new int[]{Integer.MAX_VALUE,Integer.MAX_VALUE};
 
-		for (Integer stair : remainingStairs) {
-			TreeSet<Integer> tempSet = new TreeSet<Integer>(remainingStairs);
-			tempSet.remove(stair);
-			int remainingUserCount = userCountElevator - user4ThisFloorCount;
-			int count4MoveToDest = (Math.abs(stair - destFloor)+1) * remainingUserCount;
-			Integer optimiseGoDest = null;
-			if (cache.containsKey(stair)) {
-				optimiseGoDest = cache.get(stair).get(tempSet);
-			} else {
-				cache.put(stair, new HashMap<Set<Integer>, Integer>());
+		for (Entry<Integer, Integer> entry : destCount.entrySet()) {
+			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
+			tempMap.remove(entry.getKey());
+			int remainingUserCount = userCount - count;
+			int[] current = optimiseGoDest(floor, entry.getKey(), entry.getValue(), tempMap, remainingUserCount);
+
+			if (min[0] > current[0] + remainingUserCount) {
+				min[0] = current[0] + remainingUserCount; // others drops + close door
+				min[1] = current[1]+1;
 			}
-			
-			if (optimiseGoDest == null) {
-				optimiseGoDest = optimiseGoDest(cache, destCount, stair, destCount.get(stair), tempSet, remainingUserCount);
-				cache.get(stair).put(tempSet, optimiseGoDest);
-			}
-			
-			min = Math.min(min, count4MoveToDest + optimiseGoDest + remainingUserCount); // others drops + close door
 		}
 
-		if (min == Integer.MAX_VALUE) {
-			min = 0;
+		if (min[0] == Integer.MAX_VALUE) {
+			min[0] = 0;
+			min[1] = 0;
 		}
 
-		return min;
+		return new int[] {min[0] + ((Math.abs(floor - currentPos)+1) * userCount), min[1]+1+Math.abs(currentPos-floor)};
 	}
 
-	private boolean findCall(int floor, boolean up) {
+	private int findCall(int floor, boolean up) {
+		int countCalls = 0;
 		for (Call call : calls) {
 			if (call.floor == floor && call.up == up) {
-				return true;
+				countCalls++;
 			}
 		}
-		return false;
+		return countCalls;
 	}
 
 	private String nextCommandCloseDoor() {

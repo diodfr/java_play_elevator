@@ -14,5 +14,5 @@ GET     /call                       controllers.Application.call(atFloor: Int, t
 GET     /go                         controllers.Application.go(floorToGo: Int)
 GET     /userHasExited              controllers.Application.userHasExited()
 GET     /userHasEntered             controllers.Application.userHasEntered()
-GET     /reset                      controllers.Application.reset(cause)
+GET     /reset                      controllers.Application.reset(lowerFloor: Int, higherFloor: Int, cause, cabinSize: Int)
 GET     /nextCommand                controllers.Application.nextCommand()

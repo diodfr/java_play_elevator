@@ -13,21 +13,17 @@ public class Application extends Controller {
 	private static final String ELEVATOR_KEY = "Elevator";
 
 	private static Elevator getElevatorInstance() {
-		try {
-			return Cache.getOrElse(ELEVATOR_KEY, new Callable<Elevator>() {
-				@Override
-				public Elevator call() throws Exception {
-					return new Elevator();
-				}
-			}, 0);
-		} catch (Exception e) {
-			e.printStackTrace();
-			return new Elevator();
-		}
+		return (Elevator) Cache.get(ELEVATOR_KEY);
 	}
 
-	private static void resetElevatorInstance() {
+	private static void resetElevatorInstance(final int lowerFloor, final int higherFloor, final int cabinSize) {
 		Cache.remove(ELEVATOR_KEY);
+		Cache.set(ELEVATOR_KEY, new Callable<Elevator>() {
+			@Override
+			public Elevator call() throws Exception {
+				return new Elevator(lowerFloor,higherFloor,cabinSize);
+			}
+		});
 	}
 
 	public static Result index() {
@@ -40,6 +36,7 @@ public class Application extends Controller {
 	}
 
 	public static Result go(int floorToGo) {
+		System.out.println("Application.go()");
 		getElevatorInstance().goTo(floorToGo);
 		return ok();
 	}
@@ -54,11 +51,12 @@ public class Application extends Controller {
 		return ok();
 	}
 
-	public static Result reset(String cause) {
+	public static Result reset(int lowerFloor, int higherFloor, String cause, int cabinSize) {
+		// /reset?lowerFloor=0&higherFloor=19&cause=information+message
 		Elevator elevatorInstance = getElevatorInstance();
 		System.out.println("Application.reset()" + cause);
 		System.out.println(elevatorInstance.toString());
-		resetElevatorInstance();
+		resetElevatorInstance(lowerFloor, higherFloor, cabinSize);
 		return ok();
 	}
 
