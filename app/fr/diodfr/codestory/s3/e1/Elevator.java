@@ -206,6 +206,8 @@ public class Elevator {
 
 		if (callCount == 0) {
 			return false;
+		} else if (users.size() >= cabinSize) {
+			return false;
 		}
 
 		return users.size() * 2 <= (callCount * (destMin[2]+1));
@@ -221,7 +223,7 @@ public class Elevator {
 		}
 
 		if (countMap.size() > 5) {
-			List<Integer> keepedLevels = new ArrayList<>();
+			List<Integer> keepedLevels = new ArrayList<Integer>();
 			int min = Integer.MIN_VALUE;
 
 			for (Entry<Integer, Integer> levelCount : countMap.entrySet()) {

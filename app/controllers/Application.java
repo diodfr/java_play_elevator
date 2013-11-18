@@ -18,12 +18,7 @@ public class Application extends Controller {
 
 	private static void resetElevatorInstance(final int lowerFloor, final int higherFloor, final int cabinSize) {
 		Cache.remove(ELEVATOR_KEY);
-		Cache.set(ELEVATOR_KEY, new Callable<Elevator>() {
-			@Override
-			public Elevator call() throws Exception {
-				return new Elevator(lowerFloor,higherFloor,cabinSize);
-			}
-		});
+		Cache.set(ELEVATOR_KEY,  new Elevator(lowerFloor,higherFloor,cabinSize));
 	}
 
 	public static Result index() {
@@ -31,23 +26,44 @@ public class Application extends Controller {
 	}
 
 	public static Result call(int atFloor, String to) {
-		getElevatorInstance().addCall(atFloor, to);
+		Elevator elevatorInstance = getElevatorInstance();
+		if (elevatorInstance != null) {
+			elevatorInstance.addCall(atFloor, to);
+		} else {
+			return internalServerError("Elevator not initialized");
+		}
 		return ok();
 	}
 
 	public static Result go(int floorToGo) {
 		System.out.println("Application.go()");
-		getElevatorInstance().goTo(floorToGo);
+		Elevator elevatorInstance = getElevatorInstance();
+		if (elevatorInstance != null) {
+			elevatorInstance.goTo(floorToGo);
+		} else {
+			return internalServerError("Elevator not initialized");
+		}
 		return ok();
 	}
 
 	public static Result userHasExited() {
-		getElevatorInstance().userExited();
+		Elevator elevatorInstance = getElevatorInstance();
+		if (elevatorInstance != null) {
+			elevatorInstance.userExited();
+		} else {
+			return internalServerError("Elevator not initialized");
+		}
 		return ok();
 	}
 
 	public static Result userHasEntered() {
-		getElevatorInstance().userEntered();
+		Elevator elevatorInstance = getElevatorInstance();
+		if (elevatorInstance != null) {
+			elevatorInstance.userEntered();
+		} else {
+			return internalServerError("Elevator not initialized");
+		}
+
 		return ok();
 	}
 
@@ -55,7 +71,8 @@ public class Application extends Controller {
 		// /reset?lowerFloor=0&higherFloor=19&cause=information+message
 		Elevator elevatorInstance = getElevatorInstance();
 		System.out.println("Application.reset()" + cause);
-		System.out.println(elevatorInstance.toString());
+		if (elevatorInstance != null )
+			System.out.println(elevatorInstance.toString());
 		resetElevatorInstance(lowerFloor, higherFloor, cabinSize);
 		return ok();
 	}
