@@ -199,4 +199,54 @@ public class ElevatorTest {
 		Assert.assertEquals("currentFloor=1\ndoor=true\nusers=[]\ncalls=[]\n", elevator.toString());
 
 	}
+	
+	@Test
+	public void test2User10Floor() {
+		Elevator elevator = new Elevator(0, 20, 20);
+		
+		elevator.addCall(0, "UP");
+		Assert.assertEquals(Elevator.CMD_OPEN, elevator.nextCommand());
+
+		elevator.goTo(10);
+		Assert.assertEquals(Elevator.CMD_CLOSE, elevator.nextCommand());
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L1
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L2
+		
+		elevator.addCall(3, "UP");
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L3
+		Assert.assertEquals(Elevator.CMD_OPEN, elevator.nextCommand());
+		elevator.goTo(10);
+		Assert.assertEquals(Elevator.CMD_CLOSE, elevator.nextCommand());
+	
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L4
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L5
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L6
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L7
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L8
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L9
+		Assert.assertEquals(Elevator.CMD_UP, elevator.nextCommand()); // L10
+		
+		Assert.assertEquals(Elevator.CMD_OPEN, elevator.nextCommand());
+		
+		elevator.userExited();
+		elevator.userExited();
+	}
+	/*
+	 * 
+
+		assertThat(status(result)).isEqualTo(OK);
+		result = callAction(
+				controllers.routes.ref.Application.call(3, "UP")
+				);
+		assertThat(status(result)).isEqualTo(OK);
+		nextCommand("OPEN");
+		
+		result = callAction(
+				controllers.routes.ref.Application.go(10)
+				);
+		assertThat(status(result)).isEqualTo(OK);
+
+		nextCommand("CLOSE");
+
+	 */
 }

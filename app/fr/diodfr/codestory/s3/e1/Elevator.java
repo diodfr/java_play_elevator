@@ -185,11 +185,13 @@ public class Elevator {
 
 	private String nextCommandUser() {
 		int[] destMin = optimiseGoDest(createDestCount(), users.size());
-
+		System.out.println("optimiseGoDest");
+		System.out.println(Arrays.toString(destMin));
 		if (currentFloor == destMin[0]) {
 			return openDoor();
 		} 
-
+		
+		System.out.println("should I Open doors");
 		if (shouldIOpenDoors(destMin)) {
 			return openDoor();
 		}
@@ -202,7 +204,7 @@ public class Elevator {
 	}
 
 	private boolean shouldIOpenDoors(int[] destMin){
-		int callCount = findCall(currentFloor, false);
+		int callCount = findCall(currentFloor, destMin[0] > currentFloor);
 
 		if (callCount == 0) {
 			return false;

@@ -1,7 +1,5 @@
 package controllers;
 
-import java.util.concurrent.Callable;
-
 import play.cache.Cache;
 import play.mvc.Controller;
 import play.mvc.Result;
