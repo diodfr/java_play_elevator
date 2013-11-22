@@ -119,6 +119,8 @@ public class ApplicationTest {
 				controllers.routes.ref.Application.userHasExited()
 				);
 		assertThat(status(result)).isEqualTo(OK);
+		
+		nextCommand("CLOSE");
 	}
 
 	private void nextCommand(String expectedCommand) {

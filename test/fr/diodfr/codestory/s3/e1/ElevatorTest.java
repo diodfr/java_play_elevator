@@ -249,4 +249,18 @@ public class ElevatorTest {
 		nextCommand("CLOSE");
 
 	 */
+	
+	@Test
+	public void testGo() {
+		Elevator elevator = new Elevator(0,100,100);
+		
+		for (int i = 0; i < 100; i++) {
+			elevator.goTo((int) Math.rint(Math.random() * 100));
+		}
+		
+//		elevator.nextCommand();
+		for (int i = 0; i < 1000; i++) {
+			elevator.nextCommand();
+		}
+	}
 }

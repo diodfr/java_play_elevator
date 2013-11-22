@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import com.google.common.base.Optional;
+
 public class Elevator {
 	private static final int MAX_COMPUTED_LEVELS = 5;
 	static final String CMD_DOWN = "DOWN";
@@ -50,6 +52,9 @@ public class Elevator {
 
 	private List<Call> calls = new ArrayList<Call>();
 	private List<User> users = new ArrayList<User>();
+	private Map<Integer, Integer> callsByLevel = new TreeMap<Integer, Integer>();
+	private Map<Integer, Integer> usersByLevel = new TreeMap<Integer, Integer>();
+	
 	private int lowerFloor;
 	private int higherFloor;
 	private int cabinSize;
@@ -74,6 +79,10 @@ public class Elevator {
 		System.out.println("Elevator.goTo()" + floor);
 		synchronized (users) {
 			users.add(user);
+			Optional<Integer> count = Optional.fromNullable(usersByLevel.get(floor));
+			usersByLevel.put(floor, count.or(0) + 1);
+			Optional<Integer> countCalls = Optional.fromNullable(callsByLevel.get(currentFloor));
+			callsByLevel.put(currentFloor, countCalls.or(1) - 1);
 		}
 
 		System.out.println("Elevator.enclosing_method()\n" + toString());
@@ -83,6 +92,8 @@ public class Elevator {
 		Call call = new Call(floor, destination);
 		synchronized (calls) {
 			calls.add(call);
+			Optional<Integer> count = Optional.fromNullable(callsByLevel.get(floor));
+			callsByLevel.put(floor, count.or(0) + 1);
 		}
 	}
 
@@ -121,6 +132,8 @@ public class Elevator {
 
 				if (user.destFloor == currentFloor) {
 					usersIterator.remove();
+					Optional<Integer> count = Optional.fromNullable(usersByLevel.get(currentFloor));
+					usersByLevel.put(currentFloor, count.or(0) - 1);
 					return;
 				}
 			}
@@ -128,6 +141,7 @@ public class Elevator {
 	}
 
 	public void userEntered() {
+		
 	}
 
 	public String nextCommand() {
@@ -217,12 +231,7 @@ public class Elevator {
 
 	
 	Map<Integer, Integer> createDestCount() {
-		Map<Integer, Integer> countMap = new TreeMap<Integer, Integer>();
-
-		for (User user : users) {
-			Integer integer = countMap.get(user.destFloor);
-			countMap.put(user.destFloor, integer!= null? integer + 1 : 1);
-		}
+		Map<Integer, Integer> countMap = new TreeMap<Integer, Integer>(usersByLevel);
 
 		if (countMap.size() > 5) {
 			List<Integer> keepedLevels = new ArrayList<Integer>();
@@ -251,11 +260,21 @@ public class Elevator {
 					}
 				}
 			}
+			
+			TreeMap<Integer, Integer> countMap2 = new TreeMap<Integer, Integer>();
+			
+			for (Integer level : keepedLevels) {
+				countMap2.put(level, countMap.get(level));
+			}
+			
+			return countMap2;
 		}
 
 		return countMap;
 	}
 
+	int count = 0;
+	
 	/**
 	 * returns the optimize destination
 	 * @param destCount maps floor -> user count
@@ -267,6 +286,9 @@ public class Elevator {
 		int dest = destCount.keySet().iterator().next();
 		int tickCount = Integer.MAX_VALUE;
 
+		System.out.println("destCount " + destCount.size());
+		
+		count = 0;
 		for (Entry<Integer,Integer> entry : destCount.entrySet()) {
 			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
 			tempMap.remove(entry.getKey());
@@ -277,8 +299,9 @@ public class Elevator {
 				dest = entry.getKey();
 				tickCount = current[1];
 			}
+			
+			System.out.println("Elevator.optimiseGoDest() =>" + this.count);
 		}
-
 
 		return new int[] {dest, min, tickCount};
 	}
@@ -286,6 +309,7 @@ public class Elevator {
 	private int[] optimiseGoDest(int currentPos, int floor, int count, Map<Integer, Integer> destCount, int userCount) {
 		int[] min = new int[]{Integer.MAX_VALUE,Integer.MAX_VALUE};
 
+		this.count ++;
 		for (Entry<Integer, Integer> entry : destCount.entrySet()) {
 			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
 			tempMap.remove(entry.getKey());
