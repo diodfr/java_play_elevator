@@ -63,6 +63,7 @@ public class Elevator {
 
 	public Elevator(int lowerFloor, int higherFloor, int cabinSize) {
 		this.lowerFloor = lowerFloor;
+		this.currentFloor = lowerFloor;
 		this.higherFloor = higherFloor;
 		this.cabinSize = cabinSize;
 	}

@@ -1,11 +1,19 @@
 import static org.fest.assertions.Assertions.assertThat;
 import static play.mvc.Http.Status.OK;
+import static play.test.Helpers.GET;
 import static play.test.Helpers.callAction;
 import static play.test.Helpers.contentAsString;
 import static play.test.Helpers.contentType;
+import static play.test.Helpers.fakeRequest;
+import static play.test.Helpers.routeAndCall;
 import static play.test.Helpers.status;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URISyntaxException;
 
 import org.junit.Test;
 
@@ -63,10 +71,10 @@ public class ApplicationTest {
 	@Test
 	public void testReset() {
 		File file = new File(".");
-//		Assert.fail( file.getAbsolutePath() );
+		//		Assert.fail( file.getAbsolutePath() );
 		Application appl = new DefaultApplication(file,this.getClass().getClassLoader(), null, Mode.Test());
 		Play.start(appl);
-		
+
 		Result result = callAction(
 				controllers.routes.ref.Application.reset(0, 20, "TEST", 30)
 				);
@@ -75,9 +83,9 @@ public class ApplicationTest {
 				controllers.routes.ref.Application.call(0, "UP")
 				);
 		assertThat(status(result)).isEqualTo(OK);
-		
+
 		nextCommand("OPEN");
-		
+
 		result = callAction(
 				controllers.routes.ref.Application.go(10)
 				);
@@ -86,16 +94,16 @@ public class ApplicationTest {
 		nextCommand("CLOSE");
 		nextCommand("UP");
 		nextCommand("UP");
-		
+
 		assertThat(status(result)).isEqualTo(OK);
 		result = callAction(
 				controllers.routes.ref.Application.call(3, "UP")
 				);
 		assertThat(status(result)).isEqualTo(OK);
 		nextCommand("UP");
-		
+
 		nextCommand("OPEN");
-		
+
 		result = callAction(
 				controllers.routes.ref.Application.go(10)
 				);
@@ -119,7 +127,7 @@ public class ApplicationTest {
 				controllers.routes.ref.Application.userHasExited()
 				);
 		assertThat(status(result)).isEqualTo(OK);
-		
+
 		nextCommand("CLOSE");
 	}
 
@@ -130,5 +138,34 @@ public class ApplicationTest {
 				);
 		assertThat(status(result)).isEqualTo(OK);
 		assertThat(contentAsString(result)).isEqualTo(expectedCommand);
+	}
+
+	@Test
+	public void tesUseCase() {
+		File file = new File(".");
+		//		Assert.fail( file.getAbsolutePath() );
+		Application appl = new DefaultApplication(file,this.getClass().getClassLoader(), null, Mode.Test());
+		Play.start(appl);
+
+		try {
+			BufferedReader fileReader = new BufferedReader(new FileReader(new File(getClass().getResource("IntegrationTestRequest.txt").toURI())));
+
+			while(fileReader.ready()) {
+				String getCommand = fileReader.readLine();
+				
+				Result result = routeAndCall(fakeRequest(GET, getCommand));
+				
+				assertThat(status(result)).isEqualTo(OK);
+				System.err.println(getCommand);
+				System.out.println(contentAsString(result));
+			}
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 }
