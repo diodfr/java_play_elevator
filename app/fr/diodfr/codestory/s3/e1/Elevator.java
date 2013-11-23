@@ -238,7 +238,7 @@ public class Elevator {
 		if (countMap.size() > MAX_COMPUTED_LEVELS) {
 			TreeMap<Integer, Integer> countMap2 = new TreeMap<Integer, Integer>();
 
-			NavigableSet<Integer> head = countMap.headMap(currentFloor, false).navigableKeySet();
+			NavigableSet<Integer> head = countMap.headMap(currentFloor, true).navigableKeySet();
 
 			NavigableSet<Integer> tail = countMap.tailMap(currentFloor, false).navigableKeySet();
 
