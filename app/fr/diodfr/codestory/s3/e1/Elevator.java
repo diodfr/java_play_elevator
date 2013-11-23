@@ -2,10 +2,12 @@ package fr.diodfr.codestory.s3.e1;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NavigableSet;
 import java.util.TreeMap;
 
 import com.google.common.base.Optional;
@@ -54,7 +56,7 @@ public class Elevator {
 	private List<User> users = new ArrayList<User>();
 	private Map<Integer, Integer> callsByLevel = new TreeMap<Integer, Integer>();
 	private Map<Integer, Integer> usersByLevel = new TreeMap<Integer, Integer>();
-	
+
 	private int lowerFloor;
 	private int higherFloor;
 	private int cabinSize;
@@ -141,7 +143,7 @@ public class Elevator {
 	}
 
 	public void userEntered() {
-		
+
 	}
 
 	public String nextCommand() {
@@ -204,7 +206,7 @@ public class Elevator {
 		if (currentFloor == destMin[0]) {
 			return openDoor();
 		} 
-		
+
 		System.out.println("should I Open doors");
 		if (shouldIOpenDoors(destMin)) {
 			return openDoor();
@@ -229,52 +231,61 @@ public class Elevator {
 		return users.size() * 2 <= (callCount * (destMin[2]+1));
 	}
 
-	
+
 	Map<Integer, Integer> createDestCount() {
-		Map<Integer, Integer> countMap = new TreeMap<Integer, Integer>(usersByLevel);
+		TreeMap<Integer, Integer> countMap = new TreeMap<Integer, Integer>(usersByLevel);
 
-		if (countMap.size() > 5) {
-			List<Integer> keepedLevels = new ArrayList<Integer>();
-			int min = Integer.MIN_VALUE;
+		if (countMap.size() > MAX_COMPUTED_LEVELS) {
+			TreeMap<Integer, Integer> countMap2 = new TreeMap<Integer, Integer>();
 
-			for (Entry<Integer, Integer> levelCount : countMap.entrySet()) {
-				if (levelCount.getValue() > min) {
-					keepedLevels.add(levelCount.getKey());
+			NavigableSet<Integer> head = countMap.headMap(currentFloor, false).navigableKeySet();
 
+			NavigableSet<Integer> tail = countMap.tailMap(currentFloor, false).navigableKeySet();
 
-					if (keepedLevels.size() > MAX_COMPUTED_LEVELS) {
-						for (Iterator<Integer> iterator = keepedLevels.iterator(); iterator.hasNext();) {
-							Integer level = iterator.next();
-							if (countMap.get(level) == min) {
-								iterator.remove();
-								break;
-							}
-						}
-					}
-					
-					min = Integer.MAX_VALUE;
-					for (Integer level : keepedLevels) {
-						if (countMap.get(level) < min) {
-							min = countMap.get(level);
-						}
-					}
+			for (int i = 0; i < 3; i++) {
+				Integer levelTail = (tail.size() == 0 ? Integer.MAX_VALUE : tail.first());
+				Integer levelHead = (head.size() == 0 ? Integer.MAX_VALUE : head.first());
+				if (Math.abs(levelTail - currentFloor) > Math.abs(levelHead - currentFloor)) {
+					countMap2.put(levelHead, countMap.get(levelHead));
+					head = head.headSet(levelHead, false);
+				} else {
+					countMap2.put(levelTail, countMap.get(levelTail));
+					tail = tail.tailSet(levelTail, false);
+				} 
+			}
+
+			class ValueComparator implements Comparator<Integer> {
+
+				Map<Integer, Integer> base;
+				public ValueComparator(Map<Integer, Integer> base) {
+					this.base = base;
+				}
+
+				// Note: this comparator imposes orderings that are inconsistent with equals.    
+				public int compare(Integer a, Integer b) {
+					if (base.get(a) <= base.get(b)) {
+						return -1;
+					} else {
+						return 1;
+					} // returning 0 would merge keys
 				}
 			}
-			
-			TreeMap<Integer, Integer> countMap2 = new TreeMap<Integer, Integer>();
-			
-			for (Integer level : keepedLevels) {
-				countMap2.put(level, countMap.get(level));
+
+			TreeMap<Integer, Integer> orderedByValue = new TreeMap<Integer, Integer>(new ValueComparator(usersByLevel));
+
+			for (Entry<Integer, Integer> entry : orderedByValue.entrySet()) {
+				if (countMap2.size() >= MAX_COMPUTED_LEVELS) break;
+				countMap2.put(entry.getKey(), entry.getValue());
 			}
+
 			
+
 			return countMap2;
 		}
 
 		return countMap;
 	}
 
-	int count = 0;
-	
 	/**
 	 * returns the optimize destination
 	 * @param destCount maps floor -> user count
@@ -286,9 +297,6 @@ public class Elevator {
 		int dest = destCount.keySet().iterator().next();
 		int tickCount = Integer.MAX_VALUE;
 
-		System.out.println("destCount " + destCount.size());
-		
-		count = 0;
 		for (Entry<Integer,Integer> entry : destCount.entrySet()) {
 			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
 			tempMap.remove(entry.getKey());
@@ -299,8 +307,7 @@ public class Elevator {
 				dest = entry.getKey();
 				tickCount = current[1];
 			}
-			
-			System.out.println("Elevator.optimiseGoDest() =>" + this.count);
+
 		}
 
 		return new int[] {dest, min, tickCount};
@@ -309,7 +316,6 @@ public class Elevator {
 	private int[] optimiseGoDest(int currentPos, int floor, int count, Map<Integer, Integer> destCount, int userCount) {
 		int[] min = new int[]{Integer.MAX_VALUE,Integer.MAX_VALUE};
 
-		this.count ++;
 		for (Entry<Integer, Integer> entry : destCount.entrySet()) {
 			TreeMap<Integer, Integer> tempMap = new TreeMap<Integer, Integer>(destCount);
 			tempMap.remove(entry.getKey());
