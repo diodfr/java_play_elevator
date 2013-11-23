@@ -140,7 +140,7 @@ public class ApplicationTest {
 		assertThat(contentAsString(result)).isEqualTo(expectedCommand);
 	}
 
-	@Test
+//	@Test
 	public void tesUseCase() {
 		File file = new File(".");
 		//		Assert.fail( file.getAbsolutePath() );
